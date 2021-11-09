@@ -1,0 +1,22 @@
+{
+  "name": "confirmate-reservation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "serverless": "^2.65.0",
+    "serverless-deployment-bucket": "^1.5.1",
+    "serverless-iam-roles-per-function": "^3.2.0",
+    "serverless-ignore": "^0.1.6",
+    "serverless-localstack": "^0.4.33",
+    "serverless-pseudo-parameters": "^2.6.0",
+    "serverless-step-functions": "^3.0.0",
+    "serverless-step-functions-local": "^0.1.6"
+  }
+}

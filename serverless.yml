@@ -1,0 +1,72 @@
+service: confirm-reservations-hotels
+
+frameworkversion: '2'
+
+plugins:
+  - serverless-localstack
+  - serverless-step-functions
+  - serverless-deployment-bucket
+  - serverless-pseudo-parameters
+  - serverless-iam-roles-per-function
+custom:
+  bucket: lambda-confirm-reservations-hotels
+  localstack:
+    debug: true
+    stages:
+      -local
+    endpointfile: configs/localstack_endpoints.json
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-2'}
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  environment:
+    NODE_ENV: ${opt:stage, 'dev'}
+    REGION: ${opt:region, 'us-east-2'}
+  deploymentBucket:
+    name: lambda-confirm-reservations-hotels
+    serverSideEncryption: AES256
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - 'states:StartExecution'
+        - ses:SendEmail
+        - ses:SendRawEmail
+      Resource:
+        - arn:aws:states:${self:provider.region}:#{AWS::AccountId}:stateMachine:ConfirmReservationsHotels
+        - arn:aws:lambda:us-east-2:268769556228:function:confirm-reservations-hotels-dev-send-email
+
+functions:
+  process-notification:
+    handler: src/index.handle
+    timeout: 30 # Default is 6
+    events:
+      - http:
+          path:  /reservations/{id}/inn/confirmation
+          method: post
+          cors: false
+  update-status-reservation:
+    handler: src/reservations/reservations.update
+    timeout: 30 # Default is 6
+  send-email:
+    handler: src/helpers/sendEmail.handle
+    timeout: 300 # Default is 6  
+  
+stepFunctions:
+  stateMachines:
+    confirmReservationsHotels:
+      name: ConfirmReservationsHotels
+      definition:
+        Comment: ''
+        StartAt: UpdateStatusReservation
+        States:
+          UpdateStatusReservation:
+            Type: Task
+            Next: SendEmail
+            Resource: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-update-status-reservation
+          SendEmail:
+            Type: Task
+            Resource: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-send-email
+            End: true     

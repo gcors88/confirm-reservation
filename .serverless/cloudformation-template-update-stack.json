@@ -1,0 +1,539 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ProcessDashnotificationLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/confirm-reservations-hotels-dev-process-notification"
+      }
+    },
+    "UpdateDashstatusDashreservationLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/confirm-reservations-hotels-dev-update-status-reservation"
+      }
+    },
+    "SendDashemailLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/confirm-reservations-hotels-dev-send-email"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "confirm-reservations-hotels",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/confirm-reservations-hotels-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/confirm-reservations-hotels-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "states:StartExecution",
+                    "ses:SendEmail",
+                    "ses:SendRawEmail"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:states:us-east-2:${AWS::AccountId}:stateMachine:ConfirmReservationsHotels"
+                    },
+                    "arn:aws:lambda:us-east-2:268769556228:function:confirm-reservations-hotels-dev-send-email"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "confirm-reservations-hotels",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "ProcessDashnotificationLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "lambda-confirm-reservations-hotels",
+          "S3Key": "serverless/confirm-reservations-hotels/dev/1636467746659-2021-11-09T14:22:26.659Z/confirm-reservations-hotels.zip"
+        },
+        "Handler": "src/index.handle",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "confirm-reservations-hotels-dev-process-notification",
+        "MemorySize": 1024,
+        "Timeout": 30,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "REGION": "us-east-2"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ProcessDashnotificationLogGroup"
+      ]
+    },
+    "UpdateDashstatusDashreservationLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "lambda-confirm-reservations-hotels",
+          "S3Key": "serverless/confirm-reservations-hotels/dev/1636467746659-2021-11-09T14:22:26.659Z/confirm-reservations-hotels.zip"
+        },
+        "Handler": "src/reservations/reservations.update",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "confirm-reservations-hotels-dev-update-status-reservation",
+        "MemorySize": 1024,
+        "Timeout": 30,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "REGION": "us-east-2"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "UpdateDashstatusDashreservationLogGroup"
+      ]
+    },
+    "SendDashemailLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "lambda-confirm-reservations-hotels",
+          "S3Key": "serverless/confirm-reservations-hotels/dev/1636467746659-2021-11-09T14:22:26.659Z/confirm-reservations-hotels.zip"
+        },
+        "Handler": "src/helpers/sendEmail.handle",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "confirm-reservations-hotels-dev-send-email",
+        "MemorySize": 1024,
+        "Timeout": 300,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "REGION": "us-east-2"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SendDashemailLogGroup"
+      ]
+    },
+    "ProcessDashnotificationLambdaVersionSCfT3qO6ICscdBpaiKiWS5bVmbkDiA617CrcQ9ikI": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessDashnotificationLambdaFunction"
+        },
+        "CodeSha256": "8Pqs3w8DQoMabM6NOF73xLI7WLkQj/n1S6sXAk5587k="
+      }
+    },
+    "UpdateDashstatusDashreservationLambdaVersionVq7rreuW60x1pOI1aISLj1j1jQXKjK9IC1iTMJyYDc": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "UpdateDashstatusDashreservationLambdaFunction"
+        },
+        "CodeSha256": "8Pqs3w8DQoMabM6NOF73xLI7WLkQj/n1S6sXAk5587k="
+      }
+    },
+    "SendDashemailLambdaVersionYdFucXu8Kiymw0it6G8w95NQdbMjTWXdIggwZr3k": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SendDashemailLambdaFunction"
+        },
+        "CodeSha256": "8Pqs3w8DQoMabM6NOF73xLI7WLkQj/n1S6sXAk5587k="
+      }
+    },
+    "ConfirmReservationsHotelsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.us-east-2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "dev-us-east-2-confirm-reservations-hotels-statemachine",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:confirm-reservations-hotels-dev-update-status-reservation"
+                    },
+                    {
+                      "Fn::Sub": [
+                        "${functionArn}:*",
+                        {
+                          "functionArn": {
+                            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:confirm-reservations-hotels-dev-update-status-reservation"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:confirm-reservations-hotels-dev-send-email"
+                    },
+                    {
+                      "Fn::Sub": [
+                        "${functionArn}:*",
+                        {
+                          "functionArn": {
+                            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:confirm-reservations-hotels-dev-send-email"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ConfirmReservationsHotels": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "DefinitionString": {
+          "Fn::Sub": "{\n  \"Comment\": \"\",\n  \"StartAt\": \"UpdateStatusReservation\",\n  \"States\": {\n    \"UpdateStatusReservation\": {\n      \"Type\": \"Task\",\n      \"Next\": \"SendEmail\",\n      \"Resource\": \"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:confirm-reservations-hotels-dev-update-status-reservation\"\n    },\n    \"SendEmail\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:confirm-reservations-hotels-dev-send-email\",\n      \"End\": true\n    }\n  }\n}"
+        },
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "ConfirmReservationsHotelsRole",
+            "Arn"
+          ]
+        },
+        "StateMachineName": "ConfirmReservationsHotels"
+      },
+      "DependsOn": [
+        "ConfirmReservationsHotelsRole"
+      ]
+    },
+    "ApiGatewayRestApi": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "dev-confirm-reservations-hotels",
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE"
+          ]
+        },
+        "Policy": ""
+      }
+    },
+    "ApiGatewayResourceReservations": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "reservations",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceReservationsIdVar": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceReservations"
+        },
+        "PathPart": "{id}",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceReservationsIdVarInn": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceReservationsIdVar"
+        },
+        "PathPart": "inn",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceReservationsIdVarInnConfirmation": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceReservationsIdVarInn"
+        },
+        "PathPart": "confirmation",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodReservationsIdVarInnConfirmationPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceReservationsIdVarInnConfirmation"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "ProcessDashnotificationLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      },
+      "DependsOn": [
+        "ProcessDashnotificationLambdaPermissionApiGateway"
+      ]
+    },
+    "ApiGatewayDeployment1636467725917": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "Properties": {
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "StageName": "dev"
+      },
+      "DependsOn": [
+        "ApiGatewayMethodReservationsIdVarInnConfirmationPost"
+      ]
+    },
+    "ProcessDashnotificationLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "ProcessDashnotificationLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": "lambda-confirm-reservations-hotels",
+      "Export": {
+        "Name": "sls-confirm-reservations-hotels-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "ProcessDashnotificationLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ProcessDashnotificationLambdaVersionSCfT3qO6ICscdBpaiKiWS5bVmbkDiA617CrcQ9ikI"
+      },
+      "Export": {
+        "Name": "sls-confirm-reservations-hotels-dev-ProcessDashnotificationLambdaFunctionQualifiedArn"
+      }
+    },
+    "UpdateDashstatusDashreservationLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "UpdateDashstatusDashreservationLambdaVersionVq7rreuW60x1pOI1aISLj1j1jQXKjK9IC1iTMJyYDc"
+      },
+      "Export": {
+        "Name": "sls-confirm-reservations-hotels-dev-UpdateDashstatusDashreservationLambdaFunctionQualifiedArn"
+      }
+    },
+    "SendDashemailLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SendDashemailLambdaVersionYdFucXu8Kiymw0it6G8w95NQdbMjTWXdIggwZr3k"
+      },
+      "Export": {
+        "Name": "sls-confirm-reservations-hotels-dev-SendDashemailLambdaFunctionQualifiedArn"
+      }
+    },
+    "ConfirmReservationsHotelsArn": {
+      "Description": "Current StateMachine Arn",
+      "Value": {
+        "Ref": "ConfirmReservationsHotels"
+      },
+      "Export": {
+        "Name": "sls-confirm-reservations-hotels-dev-ConfirmReservationsHotelsArn"
+      }
+    },
+    "ServiceEndpoint": {
+      "Description": "URL of the service endpoint",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "ApiGatewayRestApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            },
+            "/dev"
+          ]
+        ]
+      },
+      "Export": {
+        "Name": "sls-confirm-reservations-hotels-dev-ServiceEndpoint"
+      }
+    }
+  }
+}
