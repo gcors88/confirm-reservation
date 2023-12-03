@@ -17,7 +17,7 @@ module.exports.handle = async (event,contex,callback) => {
     console.log(info)
 
     await callStepFunction({
-        stateMachineArn: 'arn:aws:states:us-east-2:268769556228:stateMachine:ConfirmReservationsHotels',
+        stateMachineArn: process.env.STATE_MARCHINE_ARN,
         input: JSON.stringify(info)
       })
     
